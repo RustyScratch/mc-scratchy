@@ -7,3 +7,4 @@ authors = ["Multirious"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sb-itchy = { git = "https://github.com/rusty-scratch/sb-itchy" }
