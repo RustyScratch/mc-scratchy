@@ -3,8 +3,8 @@
 use std::marker::PhantomData;
 
 use sb_itchy::{
-    block::{BlockBuilder, BlockNormalBuilder, BlockVarListBuilder},
-    stack::StackBuilder,
+    block::{BlockBuilder, BlockNormalBuilder},
+    stack::StackBuilder as ItchyStackBuilder,
 };
 
 /// State/Marker for [`TypedStackBuilder`] that this side can be stacked.
@@ -23,35 +23,72 @@ pub type StackBlock = TypedStackBuilder<StackableSide, StackableSide>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypedStackBuilder<S, E> {
-    stack_builder: StackBuilder,
+    stack_builder: ItchyStackBuilder,
+    /// Start/Top of the stack marker if it's stackable or not
     start: PhantomData<S>,
+    /// End/Bottom of the stack marker if it's stackable or not
     end: PhantomData<E>,
 }
 
+mod test {
+    use crate as sb_scratchy;
+    fn test() {
+        use sb_scratchy::blocks::*;
+        #[rustfmt::skip]
+        let stack = when_flag_clicked()
+            .next(move_steps(10))
+            .next(wait(10))
+            .next(say("Connection Terminated. I'm sorry to interrupt you Elizabeth,"));
+        // Do something with stack
+    }
+}
+
 impl<S, E> TypedStackBuilder<S, E> {
-    /// Start a stack
+    /// Start building stack
     ///
-    /// Though, you probably want to use blocks in [`crate::blocks`] to create predefined block.
+    /// Though, you probably want to use predefined blocks in [`crate::blocks`].
+    ///
+    /// # Examples
+    ///
+    /// See [`crate::scripting::arg`] for more detail about block input.
+    /// ```
+    /// use sb_itchy::block::BlockNormalBuilder;
+    /// use sb_scratchy::scripting::{
+    ///     arg::{IntoInput, Number},
+    ///     stack::{StackBlock, TypedStackBuilder},
+    /// };
+    ///
+    /// // Defining new block with no argument
+    /// fn some_block() -> StackBlock {
+    ///     TypedStackBuilder::start(BlockNormalBuilder::new("anOpCodeOfYourBlock"))
+    /// }
+    ///
+    /// // Defining new block with some argument
+    /// fn some_block_with_arg(sec: impl IntoInput<Number>) -> StackBlock {
+    ///     let mut b = BlockNormalBuilder::new("anotherOpCodeOfYourBlock");
+    ///     b.add_input("SEC", sec.into_input());
+    ///     TypedStackBuilder::start(b)
+    /// }
+    ///
+    /// // Or
+    /// fn some_block_with_arg_2<Sec>(sec: Sec) -> StackBlock
+    /// where
+    ///     Sec: IntoInput<Number>,
+    /// {
+    ///     let mut b = BlockNormalBuilder::new("anotherOpCodeOfYourBlock");
+    ///     b.add_input("SEC", sec.into_input());
+    ///     TypedStackBuilder::start(b)
+    /// }
+    /// ```
     pub fn start(block_builder: BlockNormalBuilder) -> TypedStackBuilder<S, E> {
         TypedStackBuilder {
-            stack_builder: StackBuilder::start(block_builder),
+            stack_builder: ItchyStackBuilder::start(block_builder),
             start: PhantomData,
             end: PhantomData,
         }
     }
 
-    /// Start a varaible or list reporter block
-    pub fn start_varlist(
-        block_builder: BlockVarListBuilder,
-    ) -> TypedStackBuilder<UnstackableSide, UnstackableSide> {
-        TypedStackBuilder {
-            stack_builder: StackBuilder::start_varlist(block_builder),
-            start: PhantomData,
-            end: PhantomData,
-        }
-    }
-
-    pub fn into_untyped(self) -> StackBuilder {
+    pub fn into_untyped(self) -> ItchyStackBuilder {
         self.stack_builder
     }
 
@@ -60,13 +97,13 @@ impl<S, E> TypedStackBuilder<S, E> {
         block_builder: BlockBuilder,
     ) -> TypedStackBuilder<S, E> {
         TypedStackBuilder {
-            stack_builder: StackBuilder::start_with_capacity(capacity, block_builder),
+            stack_builder: ItchyStackBuilder::start_with_capacity(capacity, block_builder),
             start: PhantomData,
             end: PhantomData,
         }
     }
 
-    pub fn assume_typed(stack_builder: StackBuilder) -> TypedStackBuilder<S, E> {
+    pub fn assume_typed(stack_builder: ItchyStackBuilder) -> TypedStackBuilder<S, E> {
         TypedStackBuilder {
             stack_builder,
             start: PhantomData,
@@ -76,6 +113,12 @@ impl<S, E> TypedStackBuilder<S, E> {
 }
 
 impl<S> TypedStackBuilder<S, StackableSide> {
+    /// Adding block to end of the stack
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// ```
     pub fn next<NE>(
         self,
         next_stack: TypedStackBuilder<StackableSide, NE>,
