@@ -34,11 +34,11 @@ mod test {
     use crate as sb_scratchy;
     fn test() {
         use sb_scratchy::blocks::*;
-        #[rustfmt::skip]
-        let stack = when_flag_clicked()
-            .next(move_steps(10))
-            .next(wait(10))
-            .next(say("Connection Terminated. I'm sorry to interrupt you Elizabeth,"));
+        let mut stack = when_flag_clicked();
+        stack = stack.next(move_steps(10)).next(wait(10.0));
+        stack = stack.next(say(
+            "Connection Terminated. I'm sorry to interrupt you Elizabeth,",
+        ));
         // Do something with stack
     }
 }
@@ -103,7 +103,9 @@ impl<S, E> TypedStackBuilder<S, E> {
         }
     }
 
-    pub fn assume_typed(stack_builder: ItchyStackBuilder) -> TypedStackBuilder<S, E> {
+    /// # Safety
+    /// I mark this unsafe first because I'm unsure what kind of dark power incorrectly typed boys are packing.
+    pub unsafe fn assume_typed(stack_builder: ItchyStackBuilder) -> TypedStackBuilder<S, E> {
         TypedStackBuilder {
             stack_builder,
             start: PhantomData,

@@ -58,7 +58,7 @@ pub struct End;
 /// Shortcut to [`IfElseChainBuilder::if_`].
 pub fn if_(
     cond: impl IntoInput<Bool>,
-    then: Option<impl IntoInput<Stack>>,
+    then: impl IntoInput<Stack>,
 ) -> IfElseChainBuilder<Building> {
     IfElseChainBuilder::<Building>::if_(cond, then)
 }
@@ -79,16 +79,16 @@ impl IfElseChainBuilder<Building> {
     pub fn else_if(
         mut self,
         cond: impl IntoInput<Bool>,
-        then: Option<impl IntoInput<Stack>>,
+        then: impl IntoInput<Stack>,
     ) -> IfElseChainBuilder<Building> {
         self.else_ifs
-            .push((cond.into_input(), then.map(IntoInput::<Stack>::into_input)));
+            .push((cond.into_input(), Some(then.into_input())));
         self
     }
 
     /// Create else. After this you cannot add anymore statement
-    pub fn else_(mut self, else_: Option<impl IntoInput<Stack>>) -> IfElseChainBuilder<End> {
-        self.else_ = Some(else_.map(IntoInput::<Stack>::into_input));
+    pub fn else_(mut self, else_: impl IntoInput<Stack>) -> IfElseChainBuilder<End> {
+        self.else_ = Some(Some(else_.into_input()));
         let IfElseChainBuilder {
             if_,
             else_ifs,
@@ -108,10 +108,10 @@ impl<S> IfElseChainBuilder<S> {
     /// Create if
     pub fn if_(
         cond: impl IntoInput<Bool>,
-        then: Option<impl IntoInput<Stack>>,
+        then: impl IntoInput<Stack>,
     ) -> IfElseChainBuilder<Building> {
         IfElseChainBuilder {
-            if_: (cond.into_input(), then.map(|s| s.into_input())),
+            if_: (cond.into_input(), Some(then.into_input())),
             else_ifs: vec![],
             else_: None,
             marker: PhantomData,
@@ -178,6 +178,12 @@ impl<S> IfElseChainBuilder<S> {
                 }
             }
         };
-        TypedStackBuilder::assume_typed(b)
+        unsafe { TypedStackBuilder::assume_typed(b) }
+    }
+}
+
+impl<S> IntoInput<Stack> for IfElseChainBuilder<S> {
+    fn into_input(self) -> BlockInputBuilder {
+        BlockInputBuilder::stack(self.end().into_untyped())
     }
 }

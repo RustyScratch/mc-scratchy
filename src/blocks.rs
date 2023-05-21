@@ -35,13 +35,13 @@ macro_rules! simple_typed_block_def {
                 $($arg_name: impl $($arg_trait)+),*
             ) -> $return_ty
             {
-                TypedStackBuilder::assume_typed(
+                unsafe { TypedStackBuilder::assume_typed(
                     blocks::$fn_name(
                         $(
                             simple_typed_block_def!(@arg_thing ($($arg_trait)+) $arg_name)
                         ),*
                     )
-                ).into()
+                ).into() }
             }
         )*
     };
@@ -66,33 +66,42 @@ pub fn repeat(
     times: impl IntoInput<PositiveInteger>,
     to_repeat: Option<impl IntoInput<Stack>>,
 ) -> StackBlock {
-    TypedStackBuilder::assume_typed(blocks::repeat(
-        times.into_input(),
-        to_repeat.map(IntoInput::into_input),
-    ))
+    unsafe {
+        TypedStackBuilder::assume_typed(blocks::repeat(
+            times.into_input(),
+            to_repeat.map(IntoInput::into_input),
+        ))
+    }
 }
 
 pub fn forever(to_repeat: Option<impl IntoInput<Stack>>) -> StackBlock {
-    TypedStackBuilder::assume_typed(blocks::forever(to_repeat.map(IntoInput::into_input)))
+    unsafe {
+        TypedStackBuilder::assume_typed(blocks::forever(to_repeat.map(IntoInput::into_input)))
+    }
 }
 
-pub fn if_(condition: impl IntoInput<Bool>, if_true: Option<impl IntoInput<Stack>>) -> StackBlock {
-    TypedStackBuilder::assume_typed(blocks::if_(
-        condition.into_input(),
-        if_true.map(IntoInput::into_input),
-    ))
+pub fn if_(condition: impl IntoInput<Bool>, if_true: impl IntoInput<Stack>) -> StackBlock {
+    unsafe {
+        TypedStackBuilder::assume_typed(blocks::if_(
+            condition.into_input(),
+            // shit ain't really work if you don't know the type
+            Some(if_true.into_input()),
+        ))
+    }
 }
 
 pub fn if_else(
     condition: impl IntoInput<Bool>,
-    if_true: Option<impl IntoInput<Stack>>,
-    if_false: Option<impl IntoInput<Stack>>,
+    if_true: impl IntoInput<Stack>,
+    if_false: impl IntoInput<Stack>,
 ) -> StackBlock {
-    TypedStackBuilder::assume_typed(blocks::if_else(
-        condition.into_input(),
-        if_true.map(IntoInput::into_input),
-        if_false.map(IntoInput::into_input),
-    ))
+    unsafe {
+        TypedStackBuilder::assume_typed(blocks::if_else(
+            condition.into_input(),
+            Some(if_true.into_input()),
+            Some(if_false.into_input()),
+        ))
+    }
 }
 
 simple_typed_block_def! {
@@ -103,10 +112,12 @@ pub fn repeat_until(
     condition: impl IntoInput<Bool>,
     to_repeat: Option<impl IntoInput<Stack>>,
 ) -> StackBlock {
-    TypedStackBuilder::assume_typed(blocks::repeat_until(
-        condition.into_input(),
-        to_repeat.map(IntoInput::into_input),
-    ))
+    unsafe {
+        TypedStackBuilder::assume_typed(blocks::repeat_until(
+            condition.into_input(),
+            to_repeat.map(IntoInput::into_input),
+        ))
+    }
 }
 
 /// <br/>
@@ -116,7 +127,7 @@ pub fn repeat_until(
 ///  - `"other scripts in sprite"` and `has_next` should be `true`
 ///  - `"all"` and `has_next` should be `false`
 pub fn stop(stop_option: impl IntoField, has_next: bool) -> CapBlock {
-    TypedStackBuilder::assume_typed(blocks::stop(stop_option.into_field(), has_next))
+    unsafe { TypedStackBuilder::assume_typed(blocks::stop(stop_option.into_field(), has_next)) }
 }
 
 simple_typed_block_def! {
